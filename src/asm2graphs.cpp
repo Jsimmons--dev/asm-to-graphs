@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <set>
 #include <algorithm>
 #include <locale>
 #include <cassert>
@@ -200,6 +201,8 @@ void nextBlock(
 }
 
 int main(int argc, char ** argv) {
+//std::cerr << argv[1] << std::endl;
+
   std::ifstream input;
   input.open(argv[1]);
   assert(input.is_open());
@@ -349,6 +352,12 @@ int main(int argc, char ** argv) {
   }
 #endif
 #if defined(DUMP_JSON)
+  std::set<std::string>::const_iterator it_str_;
+  std::set<std::string> rtn_seen;
+  std::set<std::string> rtn_not_seen;
+  for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++)
+    rtn_seen.insert((*it_rtn)->label);
+
   file_out.open((basename + ".json").c_str());
   assert(file_out.is_open());
   file_out << "{" << std::endl;
@@ -356,6 +365,7 @@ int main(int argc, char ** argv) {
   file_out << "    ";
   for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++) {
     file_out << "{" << std::endl;
+    file_out << "      \"tag\":\"" << label_to_tag((*it_rtn)->label) << "\"," << std::endl;
     file_out << "      \"label\":\"" << (*it_rtn)->label << "\"," << std::endl;
     file_out << "      \"callees\":[" << std::endl;
     std::vector<std::string> tmp;
@@ -364,18 +374,47 @@ int main(int argc, char ** argv) {
         tmp.push_back(*it_str);
     file_out << "        ";
     for (it_str = tmp.begin(); it_str != tmp.end(); it_str++) {
+      if (rtn_seen.find(*it_str) == rtn_seen.end()) {
+        rtn_not_seen.insert(*it_str);
+//      std::cerr << "Not seen : " << *it_str << std::endl;
+      }
+//    else {
+//      std::cerr << "Seen     : " << *it_str << std::endl;
+//    }
       file_out <<         "{" << std::endl;
-      file_out << "          \"label\"    :\"" << *it_str << "\"" << std::endl;
+      file_out << "          \"tag\"    :\"" << label_to_tag(*it_str) << "\"" << std::endl;
       file_out << "        }";
       if (it_str != tmp.end() - 1)
         file_out << ",";
     }
     
     file_out << std::endl;
-    file_out << "      ]" << std::endl;
+    file_out << "      ]," << std::endl;
+    file_out << "      \"type\":";
+    if ((*it_rtn)->label.find("sub_") == 0)
+      file_out << "\"idapro\"";
+    else if ((*it_rtn)->label.find("rtn_") == 0)
+      file_out << "\"ours\"";
+    else
+      file_out << "\"user\"";
+    file_out << std::endl;
     file_out << "    }";
     if (it_rtn != routines.end() - 1)
       file_out << ",";
+  }
+  for (it_str_ = rtn_not_seen.begin(); it_str_ != rtn_not_seen.end(); it_str_++) {
+//  std::cerr << "Add entry: " << *it_str_ << std::endl;
+    file_out << ",{" << std::endl;
+    file_out << "      \"tag\":\"" << label_to_tag(*it_str_) << "\"," << std::endl;
+    file_out << "      \"label\":\"" << *it_str_ << "\"," << std::endl;
+    file_out << "      \"callees\":[]," << std::endl;
+    file_out << "      \"type\":";
+    if ((*it_str_)[0] == '[')
+      file_out << "\"indirect\"";
+    else
+      file_out << "\"library\"";
+    file_out << std::endl;
+    file_out << "    }";
   }
   file_out << std::endl;
   file_out << "  ]" << std::endl;
@@ -387,14 +426,24 @@ int main(int argc, char ** argv) {
     file_out.open((basename + "-" + label_to_tag((*it_rtn)->label) + ".json").c_str());
     assert(file_out.is_open());
 
+    std::set<std::string> blk_seen;
+    std::set<std::string> blk_not_seen;
+    for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++)
+      blk_seen.insert((*it_blk)->label);
+
     file_out << "{" << std::endl;
     file_out << "  \"blocks\":[" << std::endl;
     file_out << "    ";
     for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++) {
       file_out <<     "{" << std::endl;
+      file_out << "      \"tag\":\"" << label_to_tag((*it_blk)->label) << "\"," << std::endl;
       file_out << "      \"label\":\"" << (*it_blk)->label << "\"," << std::endl;
-      file_out << "      \"out_true\":\"" << (*it_blk)->out_true << "\"," << std::endl;
-      file_out << "      \"out_false\":\"" << (*it_blk)->out_false << "\"," << std::endl;
+      if (!(*it_blk)->out_true.empty() && blk_seen.find((*it_blk)->out_true) == blk_seen.end())
+        blk_not_seen.insert((*it_blk)->out_true);
+      file_out << "      \"out_true\":\""  << label_to_tag((*it_blk)->out_true)  << "\"," << std::endl;
+      if (!(*it_blk)->out_false.empty() && blk_seen.find((*it_blk)->out_false) == blk_seen.end())
+        blk_not_seen.insert((*it_blk)->out_false);
+      file_out << "      \"out_false\":\"" << label_to_tag((*it_blk)->out_false) << "\"," << std::endl;
       file_out << "      \"last_inst\":\"" << instToString((*it_blk)->last_inst) << "\"," << std::endl;
       file_out << "      \"instructions\":[" << std::endl;
       file_out << "        ";
@@ -411,7 +460,7 @@ int main(int argc, char ** argv) {
       file_out << "        ";
       for (it_str = (*it_blk)->callees.begin(); it_str != (*it_blk)->callees.end(); it_str++) {
         file_out <<        "{" << std::endl;
-        file_out << "          \"label\":\"" << *it_str << "\"" << std::endl;
+        file_out << "          \"tag\":\"" << label_to_tag(*it_str) << "\"" << std::endl;
         file_out << "       }";
         if (it_str != (*it_blk)->callees.end() - 1)
           file_out << ",";
@@ -421,6 +470,17 @@ int main(int argc, char ** argv) {
       file_out << "    }";
       if (it_blk != (*it_rtn)->blocks.end() - 1)
         file_out << ",";
+    }
+    for (it_str_ = blk_not_seen.begin(); it_str_ != blk_not_seen.end(); it_str_++) {
+      file_out << ",{" << std::endl;
+      file_out << "      \"tag\":\"" << label_to_tag(*it_str_) << "\"," << std::endl;
+      file_out << "      \"label\":\"" << *it_str_ << "\"," << std::endl;
+      file_out << "      \"out_true\":\"\"," << std::endl;
+      file_out << "      \"out_false\":\"\"," << std::endl;
+      file_out << "      \"last_inst\":\"\"," << std::endl;
+      file_out << "      \"instructions\":[]," << std::endl;
+      file_out << "      \"callees\":[]" << std::endl;
+      file_out << "    }";
     }
     file_out << std::endl;
     file_out << "  ]" << std::endl;

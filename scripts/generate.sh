@@ -18,9 +18,6 @@ cd $filename
 
 expand $original | sed -r 's/^.{14}//' | sed -r 's/^.{49}//' | sed 's/\r//' | grep -v "^;" > $filename.asm
 $scriptdir/../src/asm2graphs $filename.asm
-rm -rf $filename.asm
 
 cd ..
-
-tar czf $filename.tar.gz $filename
 
