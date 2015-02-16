@@ -1,20 +1,20 @@
 
-all: asm2cfg
+all: asm2graphs
 
-check: check-asm2cfg
+check: check-asm2graphs
 
-clean: clean-asm2cfg
+clean: clean-asm2graphs
 
 ########################
 
-asm2cfg: asm2cfg.o
-	c++ asm2cfg.o -o asm2cfg
+asm2graphs: asm2graphs.o
+	c++ asm2graphs.o -o asm2graphs
 
-asm2cfg.o: asm2cfg.cpp
-	c++ -g -c asm2cfg.cpp -o asm2cfg.o
+asm2graphs.o: asm2graphs.cpp
+	c++ -g -c asm2graphs.cpp -o asm2graphs.o
 
-check-asm2cfg: asm2cfg
+check-asm2graphs: asm2graphs
 
-clean-asm2cfg:
-	rm -f asm2cfg asm2cfg.o
+clean-asm2graphs:
+	rm -f asm2graphs asm2graphs.o
 
