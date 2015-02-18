@@ -457,11 +457,12 @@ void toJSON(const std::string & filename, const std::vector<routine_t *> & routi
   size_t dot_pos   = filename.find_last_of('.');
   std::string basename = filename.substr(slash_pos + 1, dot_pos - slash_pos - 1);
 
+#ifndef VIZ
   out.open((basename + ".json").c_str());
   assert(out.is_open());
   toJSON(routines, out, indent, true);
   out.close();
-
+#else
   out.open((basename + "-no-block.json").c_str());
   assert(out.is_open());
   toJSON(routines, out, indent, false);
@@ -473,6 +474,7 @@ void toJSON(const std::string & filename, const std::vector<routine_t *> & routi
     toJSON((*it_rtn)->blocks, out, indent);
     out.close();
   }
+#endif
 }
 
 /*

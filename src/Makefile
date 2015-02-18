@@ -13,6 +13,12 @@ asm2graphs: asm2graphs.o
 asm2graphs.o: asm2graphs.cpp
 	c++ -g -c asm2graphs.cpp -o asm2graphs.o
 
+asm2graphs-viz: asm2graphs-viz.o
+	c++ asm2graphs-viz.o -o asm2graphs-viz
+
+asm2graphs-viz.o: asm2graphs.cpp
+	c++ -g -DVIZ -c asm2graphs.cpp -o asm2graphs-viz.o
+
 check-asm2graphs: asm2graphs
 
 clean-asm2graphs:
