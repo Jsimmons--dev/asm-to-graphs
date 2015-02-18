@@ -15,7 +15,40 @@ make -C tests check
 
 ## JSON format
 
-### Call Graph
+### All inclusive graph
+
+```json
+{
+  "routines": [
+  {
+    "tag":"start__",
+    "label":"start##",
+    "type":"user",
+    "callees":[
+      { "tag":"___A" }
+    ],
+    "blocks":[
+      {
+        "tag":"loc_0",
+        "label":"loc@0",
+        "out_true":"loc_0",
+        "out_false":"",
+        "last_inst":"jmp",
+        "instructions":[
+          { "str":"call @$%A" },
+          { "str":"jmp loc@0" }
+        ],
+        "callees":[
+          { "tag":"___A" }
+        ]
+      }
+    ]
+  }
+  ]
+}
+```
+
+### Call Graph only
 
 The generated call graphs contain a list of *routines*:
 ```json
@@ -42,7 +75,7 @@ The *type* field is one of:
  * *library*: routine not present in the code (DLLs)
  * *indirect*: indirect call (ie: "call \[*ebp*+var\]")
 
-### Control Flow Graph
+### Control Flow Graph only
 
 Every routine which type is *idapro*, *ours*, or *user*, a CFG is generated.
 These are made of a list of *blocks*.
