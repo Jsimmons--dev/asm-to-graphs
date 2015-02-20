@@ -11,7 +11,7 @@ asm2graphs: asm2graphs.o
 	c++ asm2graphs.o -o asm2graphs
 
 asm2graphs.o: asm2graphs.cpp
-	c++ -g -DVIZ -c asm2graphs.cpp -o asm2graphs.o
+	c++ -g -DVIZ -DHIST -c asm2graphs.cpp -o asm2graphs.o
 
 check-asm2graphs: asm2graphs
 

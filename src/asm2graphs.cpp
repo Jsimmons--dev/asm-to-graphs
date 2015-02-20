@@ -332,6 +332,7 @@ int main(int argc, char ** argv) {
 
   toJSON(filename, routines);
 
+#ifdef HIST
   std::map<std::string, size_t> inst_hist;
   std::map<size_t, size_t> blk_hist;
   std::map<size_t, size_t> rtn_hist;
@@ -375,7 +376,7 @@ int main(int argc, char ** argv) {
   for (it_hist_ = rtn_hist.begin(); it_hist_ != rtn_hist.end(); it_hist_++)
     out << it_hist_->first << " : " << it_hist_->second << std::endl;
   out.close();
-
+#endif
   return 0;
 }
 
@@ -419,6 +420,7 @@ void routine_t::toJSON(std::ostream & out, std::string indent, bool inc_blk) con
       (*it_blk)->toJSON(out, indent + "    ");
       if (it_blk != blocks.end() - 1)
         out << ",";
+      out << std::endl;
     }
     out << indent << "  ]" << std::endl;
   }
@@ -462,7 +464,8 @@ void toJSON(const std::vector<routine_t *> & routines, std::ostream & out, std::
       out << indent << "\"indirect\"," << std::endl;
     else
       out << indent << "\"library\"," << std::endl;
-    out << indent << "  \"callees\":[]" << std::endl;
+    out << indent << "    \"callees\":[]," << std::endl;
+    out << indent << "    \"blocks\":[]" << std::endl;
     out << indent << "  }";
   }
   out << indent << std::endl;
@@ -497,8 +500,8 @@ void block_t::toJSON(std::ostream & out, std::string indent) const {
       out << "," << std::endl;
       out << indent << "    { \"tag\":\"" << label_to_tag(*it_str_) << "\" }";
     }
-  out << std::endl;
-  out << indent << "  ";
+    out << std::endl;
+    out << indent << "  ";
   }
   out << "]" << std::endl;
   out << indent << "}";
@@ -555,12 +558,11 @@ void toJSON(const std::string & filename, const std::vector<routine_t *> & routi
   size_t dot_pos   = filename.find_last_of('.');
   std::string basename = filename.substr(slash_pos + 1, dot_pos - slash_pos - 1);
 
-#ifndef VIZ
   out.open((basename + ".json").c_str());
   assert(out.is_open());
   toJSON(routines, out, indent, true);
   out.close();
-#else
+#ifdef VIZ
   out.open((basename + "-no-block.json").c_str());
   assert(out.is_open());
   toJSON(routines, out, indent, false);
