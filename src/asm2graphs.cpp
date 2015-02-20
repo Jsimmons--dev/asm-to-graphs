@@ -110,11 +110,14 @@ std::string label_to_tag(const std::string & label) {
 struct block_t;
 
 struct routine_t {
-  routine_t(const std::string & label_) : label(label_) {
+  routine_t(const std::string & label_) : label(label_), blocks(), inst_hist() {
 //  std::cerr << " -> routine_t(\"" << label << "\")" << std::endl;
   }
   std::string label;
   std::vector<block_t *> blocks;
+  std::map<std::string, size_t> inst_hist;
+
+  void collectHistogram();
 
   void toJSON(std::ostream & out, std::string indent, bool inc_blk) const;
 };
@@ -125,6 +128,7 @@ struct block_t {
   block_t(const std::string & label_) :
     label(label_),
     instructions(),
+    inst_hist(),
     callees(),
     out_true(""),
     out_false(""),
@@ -135,14 +139,31 @@ struct block_t {
 
   std::string label;
   std::vector<std::string> instructions;
-  std::vector<std::string> callees;
+  std::map<std::string, size_t> inst_hist;
+  std::set<std::string> callees;
   std::string out_true;
   std::string out_false;
   inst_e last_inst;
 
+  void addInstruction(const std::string & inst) {
+    instructions.push_back(inst);
+
+    size_t pos = inst.find_first_of(' ');
+    inst_hist[inst.substr(0, pos)]++;
+  }
+
   void toJSON(std::ostream & out, std::string indent) const;
 };
+
 void toJSON(const std::string & filename, const std::vector<routine_t *> & routines);
+
+void routine_t::collectHistogram() {
+  std::vector<block_t *>::const_iterator it_blk;
+  std::map<std::string, size_t>::const_iterator it_hist;
+  for (it_blk = blocks.begin(); it_blk != blocks.end(); it_blk++)
+    for (it_hist = (*it_blk)->inst_hist.begin(); it_hist != (*it_blk)->inst_hist.end(); it_hist++)
+      inst_hist[it_hist->first] += it_hist->second;
+}
 
 bool ignore(const std::string & str) {
   return ( str[0] == '.' ||
@@ -170,6 +191,7 @@ bool ignore(const std::string & str) {
            str.find("TimeZoneInformation") == 0 ||
            str.find("byte_") == 0 ||
            str.find("word_") == 0 ||
+           str.find("public") == 0 ||
            str.find("= dword ptr") != std::string::npos ||
            str.find("= byte ptr") != std::string::npos
          );
@@ -202,6 +224,8 @@ void nextBlock(
   std::vector<routine_t *> & routines
 ) {
   if (!lbl_rtn.empty()) {
+    if (curr_rtn != NULL)
+      curr_rtn->collectHistogram();
     curr_rtn = new routine_t(lbl_rtn);
     routines.push_back(curr_rtn);
   }
@@ -281,13 +305,13 @@ int main(int argc, char ** argv) {
           nextBlock(prev_blk, curr_blk, curr_rtn, oss_blk.str(), "", routines);
         }
 
-        curr_blk->instructions.push_back(line);
+        curr_blk->addInstruction(line);
 
         std::string target;
         curr_blk->last_inst = getInstruction(line, target);
 
         if (curr_blk->last_inst == e_call) { // Calls don't break the CFG
-          curr_blk->callees.push_back(target);
+          curr_blk->callees.insert(target);
           curr_blk->last_inst = e_none;
         }
         else if (curr_blk->last_inst != e_none) {
@@ -304,19 +328,65 @@ int main(int argc, char ** argv) {
 
   input.close();
 
-  toJSON(argv[1], routines);
+  std::string filename(argv[1]);
+
+  toJSON(filename, routines);
+
+  std::map<std::string, size_t> inst_hist;
+  std::map<size_t, size_t> blk_hist;
+  std::map<size_t, size_t> rtn_hist;
+
+  std::map<std::string, size_t>::const_iterator it_hist;
+  std::map<size_t, size_t>::const_iterator it_hist_;
+  std::vector<routine_t *>::const_iterator it_rtn;
+  std::vector<block_t *>::const_iterator it_blk;
+
+  for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++) {
+    for (it_hist = (*it_rtn)->inst_hist.begin(); it_hist != (*it_rtn)->inst_hist.end(); it_hist++)
+      inst_hist[it_hist->first] += it_hist->second;
+
+    size_t size = 0;
+    for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++) {
+      blk_hist[(*it_blk)->instructions.size()]++;
+      size+=(*it_blk)->instructions.size();
+    }
+    rtn_hist[size]++;
+  }
+
+  std::ofstream out;
+  size_t slash_pos = filename.find_last_of('/');
+  size_t dot_pos   = filename.find_last_of('.');
+  std::string basename = filename.substr(slash_pos + 1, dot_pos - slash_pos - 1);
+
+  out.open((basename + "-inst.hist").c_str());
+  assert(out.is_open());
+  for (it_hist = inst_hist.begin(); it_hist != inst_hist.end(); it_hist++)
+    out << it_hist->first << " : " << it_hist->second << std::endl;
+  out.close();
+
+  out.open((basename + "-blk.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = blk_hist.begin(); it_hist_ != blk_hist.end(); it_hist_++)
+    out << it_hist_->first << " : " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-rtn.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = rtn_hist.begin(); it_hist_ != rtn_hist.end(); it_hist_++)
+    out << it_hist_->first << " : " << it_hist_->second << std::endl;
+  out.close();
 
   return 0;
 }
 
 void routine_t::toJSON(std::ostream & out, std::string indent, bool inc_blk) const {
   std::vector<block_t *>::const_iterator it_blk;
-  std::vector<std::string>::const_iterator it_str;
-  std::set<std::string>::const_iterator it_str_;
-  std::vector<std::string> callees;
+  std::set<std::string>::const_iterator it_str;
+
+  std::set<std::string> callees;
   for (it_blk = blocks.begin(); it_blk != blocks.end(); it_blk++)
     for (it_str = (*it_blk)->callees.begin(); it_str != (*it_blk)->callees.end(); it_str++)
-      callees.push_back(*it_str);
+      callees.insert(*it_str);
 
   out << "{" << std::endl;
   out << indent << "  \"tag\":\"" << label_to_tag(label) << "\"," << std::endl;
@@ -328,15 +398,21 @@ void routine_t::toJSON(std::ostream & out, std::string indent, bool inc_blk) con
     out << "\"ours\"," << std::endl;
   else
     out << "\"user\"," << std::endl;
-  out << indent << "  \"callees\":[" << std::endl;
-  for (it_str = callees.begin(); it_str != callees.end(); it_str++) {
-    out << indent << "    { \"tag\":\"" << label_to_tag(*it_str) << "\" }";
-    if (it_str != callees.end() - 1)
-      out << ",";
+  out << indent << "  \"callees\":[";
+  if (!callees.empty()) {
+    it_str = callees.begin();
     out << std::endl;
+    out << indent << "    { \"tag\":\"" << label_to_tag(*it_str) << "\" }";
+    it_str++;
+    for ( ; it_str != callees.end(); it_str++) {
+      out << "," << std::endl;
+      out << indent << "    { \"tag\":\"" << label_to_tag(*it_str) << "\" }";
+    }
+    out << std::endl;
+    out << indent << "  ";
   }
   if (inc_blk) {
-    out << indent << "  ]," << std::endl;
+    out << "]," << std::endl;
     out << indent << "  \"blocks\":[" << std::endl;
     out << indent << "    ";
     for (it_blk = blocks.begin(); it_blk != blocks.end(); it_blk++) {
@@ -347,7 +423,7 @@ void routine_t::toJSON(std::ostream & out, std::string indent, bool inc_blk) con
     out << indent << "  ]" << std::endl;
   }
   else
-    out << indent << "  ]" << std::endl;
+    out << "]" << std::endl;
   out << indent << "}";
 }
 
@@ -355,8 +431,7 @@ void toJSON(const std::vector<routine_t *> & routines, std::ostream & out, std::
   std::vector<routine_t *>::const_iterator it_rtn;
   std::vector<routine_t *>::const_iterator it_rtn_;
   std::vector<block_t *>::const_iterator it_blk;
-  std::vector<std::string>::const_iterator it_str;
-  std::set<std::string>::const_iterator it_str_;
+  std::set<std::string>::const_iterator it_str;
 
   std::set<std::string> rtn_seen;
   std::set<std::string> rtn_not_seen;
@@ -378,12 +453,12 @@ void toJSON(const std::vector<routine_t *> & routines, std::ostream & out, std::
     if (it_rtn != routines.end() - 1)
       out << indent << ",";
   }
-  for (it_str_ = rtn_not_seen.begin(); it_str_ != rtn_not_seen.end(); it_str_++) {
+  for (it_str = rtn_not_seen.begin(); it_str != rtn_not_seen.end(); it_str++) {
     out << ",{" << std::endl;
-    out << indent << "    \"tag\":\"" << label_to_tag(*it_str_) << "\"," << std::endl;
-    out << indent << "    \"label\":\"" << *it_str_ << "\"," << std::endl;
+    out << indent << "    \"tag\":\"" << label_to_tag(*it_str) << "\"," << std::endl;
+    out << indent << "    \"label\":\"" << *it_str << "\"," << std::endl;
     out << indent << "    \"type\":";
-    if ((*it_str_)[0] == '[')
+    if ((*it_str)[0] == '[')
       out << indent << "\"indirect\"," << std::endl;
     else
       out << indent << "\"library\"," << std::endl;
@@ -397,6 +472,7 @@ void toJSON(const std::vector<routine_t *> & routines, std::ostream & out, std::
 
 void block_t::toJSON(std::ostream & out, std::string indent) const {
   std::vector<std::string>::const_iterator it_str;
+  std::set<std::string>::const_iterator it_str_;
   out << "{" << std::endl;
   out << indent << "  \"tag\":\"" << label_to_tag(label) << "\"," << std::endl;
   out << indent << "  \"label\":\"" << label << "\"," << std::endl;
@@ -411,14 +487,20 @@ void block_t::toJSON(std::ostream & out, std::string indent) const {
     out << std::endl;
   }
   out << indent << "  ]," << std::endl;
-  out << indent << "  \"callees\":[" << std::endl;
-  for (it_str = callees.begin(); it_str != callees.end(); it_str++) {
-    out << indent << "    { \"tag\":\"" << label_to_tag(*it_str) << "\" }";
-    if (it_str != callees.end() - 1)
-      out << ",";
+  out << indent << "  \"callees\":[";
+  if (!callees.empty()) {
+    it_str_ = callees.begin();
     out << std::endl;
+    out << indent << "    { \"tag\":\"" << label_to_tag(*it_str_) << "\" }";
+    it_str_++;
+    for (; it_str_ != callees.end(); it_str_++) {
+      out << "," << std::endl;
+      out << indent << "    { \"tag\":\"" << label_to_tag(*it_str_) << "\" }";
+    }
+  out << std::endl;
+  out << indent << "  ";
   }
-  out << indent << "  ]" << std::endl;
+  out << "]" << std::endl;
   out << indent << "}";
 }
 
@@ -492,69 +574,4 @@ void toJSON(const std::string & filename, const std::vector<routine_t *> & routi
   }
 #endif
 }
-
-/*
-#undef  DUMP_GRAPHVIZ
-#define DUMP_JSON
-
-  std::vector<routine_t *>::const_iterator it_rtn;
-  std::vector<routine_t *>::const_iterator it_rtn_;
-  std::vector<block_t *>::const_iterator it_blk;
-  std::vector<std::string>::const_iterator it_str;
-  std::ofstream out;
-#if defined(DUMP_GRAPHVIZ)
-  out.open((basename + ".dot").c_str());
-  assert(out.is_open());
-  out << indent <<"digraph cg {" << std::endl;
-  out << indent <<"  rankdir=\"LR\";" << std::endl;
-  for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++)
-    out << indent <<"  " << label_to_tag((*it_rtn)->label) << " [label=\"" << (*it_rtn)->label << "\"];" << std::endl;
-  for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++) {
-    for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++) {
-      for (it_str = (*it_blk)->callees.begin(); it_str != (*it_blk)->callees.end(); it_str++) {
-        out << indent <<"  " << label_to_tag((*it_rtn)->label) << " -> " << label_to_tag(*it_str);
-        if ((*it_rtn)->label < *it_str) out << indent <<"[constraint=false]";
-        out << indent <<";" << std::endl;
-      }
-    }
-  }
-  out << indent <<"}" << std::endl;
-  out.close();
-  
-  for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++) {
-    out.open((basename + "-" + label_to_tag((*it_rtn)->label) + ".dot").c_str());
-    out << indent <<"digraph cfg {" << std::endl;
-    for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++) {
-      out << indent <<"  " << label_to_tag((*it_blk)->label) << " [label=\"";
-      if ((*it_blk)->instructions.size() > 7) {
-        for (it_str = (*it_blk)->instructions.begin(); it_str != (*it_blk)->instructions.begin() + 3; it_str++)
-          out << indent <<*it_str << "\\n";
-        out << indent <<"...\\n";
-        for (it_str = (*it_blk)->instructions.end() - 3; it_str != (*it_blk)->instructions.end(); it_str++)
-          out << indent <<*it_str << "\\n";
-      }
-      else {
-        for (it_str = (*it_blk)->instructions.begin(); it_str != (*it_blk)->instructions.end(); it_str++)
-          out << indent <<*it_str << "\\n";
-      }
-      out << indent <<"\", shape=box];" << std::endl;
-
-      if (!(*it_blk)->out_true.empty())
-        out << indent <<"  " << label_to_tag((*it_blk)->label) << " -> " << label_to_tag((*it_blk)->out_true)  << "[constraint=true,  color=green];" << std::endl;
-      if (!(*it_blk)->out_false.empty())
-        out << indent <<"  " << label_to_tag((*it_blk)->label) << " -> " << label_to_tag((*it_blk)->out_false) << "[constraint=false, color=red  ];" << std::endl;
-      
-      for (it_str = (*it_blk)->callees.begin(); it_str != (*it_blk)->callees.end(); it_str++) {
-        out << indent <<"  " << label_to_tag((*it_blk)->label) << " -> rtn_" << label_to_tag(*it_str) << "[constraint=false];" << std::endl;
-      }
-      out << indent <<"subgraph cluster_routines {" << std::endl;
-      for (it_rtn_ = routines.begin(); it_rtn_ != routines.end(); it_rtn_++) {
-        out << indent <<"  rtn_" << label_to_tag((*it_rtn_)->label) << " [label=\"" << (*it_rtn_)->label << "\"];" << std::endl;
-      }
-      out << indent <<"}" << std::endl;
-    }
-    out << indent <<"}" << std::endl;
-    out.close();
-  }
-*/
 
