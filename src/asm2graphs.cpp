@@ -28,9 +28,14 @@ void trim(std::string & s, char c) {
 
 enum inst_e {
   e_jmp,
+  e_ja,
+  e_jb,
+  e_jbe,
+  e_jnb,
+  e_jg,
+  e_jl,
   e_jz,
   e_jnz,
-  e_jnb,
   e_retn,
   e_call,
   e_none
@@ -39,14 +44,38 @@ enum inst_e {
 std::string instToString(inst_e inst) {
   switch (inst) {
     case e_jmp:  return "jmp";
+    case e_ja:   return "ja";
+    case e_jb:   return "jb";
+    case e_jbe:  return "jbe";
+    case e_jnb:  return "jnb";
+    case e_jg:   return "jg";
+    case e_jl:   return "jl";
     case e_jz:   return "jz";
     case e_jnz:  return "jnz";
-    case e_jnb:  return "jnb";
     case e_retn: return "retn";
     case e_call: return "call";
     case e_none: return "";
     default: assert(false);
   }
+}
+
+inst_e getInstruction(const std::string & str, std::string & target) {
+  size_t pos = str.find_last_of(' ');
+  if (pos != std::string::npos)
+    target = str.substr(pos+1);
+
+  if      (str.find("jmp" ) == 0) return e_jmp;
+  else if (str.find("ja"  ) == 0) return e_ja;
+  else if (str.find("jb"  ) == 0) return e_jb;
+  else if (str.find("jbe" ) == 0) return e_jbe;
+  else if (str.find("jnb" ) == 0) return e_jnb;
+  else if (str.find("jg"  ) == 0) return e_jg;
+  else if (str.find("jl"  ) == 0) return e_jl;
+  else if (str.find("jz"  ) == 0) return e_jz;
+  else if (str.find("jnz" ) == 0) return e_jnz;
+  else if (str.find("retn") == 0) return e_retn;
+  else if (str.find("call") == 0) return e_call;
+  else return e_none;
 }
 
 bool isPrintable(char c) {
@@ -118,18 +147,31 @@ void toJSON(const std::string & filename, const std::vector<routine_t *> & routi
 bool ignore(const std::string & str) {
   return ( str[0] == '.' ||
            str[0] == '_' ||
+           str[0] == '+' ||
            str.find("db") == 0 ||
+           str.find(" db ") != std::string::npos ||
+           str.find("dd") == 0 ||
+           str.find(" dd ") != std::string::npos ||
+           str.find("dw") == 0 ||
+           str.find(" dw ") != std::string::npos ||
+           str.find("dt") == 0 ||
+           str.find(" dt ") != std::string::npos ||
+           str.find("<0>") != std::string::npos ||
            str.find("align") == 0 ||
            str.find("assume") == 0 ||
            str.find("include") == 0 ||
            str.find("unk_") == 0 ||
            str.find("extrn") == 0 ||
+           str.find("end") == 0 ||
+           str.find("ExceptionInfo") == 0 ||
+           str.find("unicode") == 0 ||
            str.find("dword_") == 0 ||
            str.find("lpMem") == 0 ||
            str.find("TimeZoneInformation") == 0 ||
            str.find("byte_") == 0 ||
            str.find("word_") == 0 ||
-           str.find("= dword ptr") != std::string::npos
+           str.find("= dword ptr") != std::string::npos ||
+           str.find("= byte ptr") != std::string::npos
          );
 }
 
@@ -140,32 +182,6 @@ bool isLabel(const std::string & str, std::string & label) {
     return true;
   }
   return false;
-}
-
-inst_e getInstruction(const std::string & str, std::string & target) {
-  size_t pos = str.find_last_of(' ');
-  if (pos != std::string::npos)
-    target = str.substr(pos+1);
-
-  if (str.find("jmp") == 0) {
-    return e_jmp;
-  }
-  else if (str.find("jz") == 0) {
-    return e_jz;
-  }
-  else if (str.find("jnz") == 0) {
-    return e_jnz;
-  }
-  else if (str.find("jnb") == 0) {
-    return e_jnb;
-  }
-  else if (str.find("retn") == 0) {
-    return e_retn;
-  }
-  else if (str.find("call") == 0) {
-    return e_call;
-  }
-  else return e_none;
 }
 
 bool isProcStart(const std::string & str, std::string & label) {
@@ -235,9 +251,9 @@ int main(int argc, char ** argv) {
     if (start_comment != std::string::npos)
       line = line.substr(0, start_comment);
 
-    if (!line.empty()) trim(line, ' ');
+    if (line.length() > 1) trim(line, ' ');
 
-    if (!line.empty() && !ignore(line)) {
+    if ((line.length() > 1) && !ignore(line)) {
 
 //    std::cerr << "Use : \"" << line << "\"" << std::endl;
 
