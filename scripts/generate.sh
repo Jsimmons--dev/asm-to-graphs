@@ -17,7 +17,12 @@ mkdir $filename
 cd $filename
 
 expand $original | grep "^.text:" | sed -r 's/^.{14}//' | sed -r 's/^.{49}//' | sed 's/\r//' | grep -v "^;" > $filename.asm
-$scriptdir/../src/asm2graphs $filename.asm
+if [ -e $scriptdir/../src/asm2graphs-$2 ]
+then
+  $scriptdir/../src/asm2graphs-$2 $filename.asm
+else
+  $scriptdir/../src/asm2graphs $filename.asm
+fi
 
 cd ..
 
