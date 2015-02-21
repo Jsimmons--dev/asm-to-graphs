@@ -10,6 +10,18 @@
 #include <locale>
 #include <cassert>
 
+#ifndef JSON
+# define JSON 1
+#endif
+
+#ifndef VIZ
+# define VIZ 0
+#endif
+
+#ifndef HIST
+# define HIST 0
+#endif
+
 void ltrim(std::string & s, char c) {
   size_t first = s.find_first_not_of(c);
   if (first != std::string::npos)
@@ -332,7 +344,7 @@ int main(int argc, char ** argv) {
 
   toJSON(filename, routines);
 
-#ifdef HIST
+#if HIST == 1
   std::map<std::string, size_t> inst_hist;
   std::map<size_t, size_t> blk_hist;
   std::map<size_t, size_t> rtn_hist;
@@ -557,12 +569,13 @@ void toJSON(const std::string & filename, const std::vector<routine_t *> & routi
   size_t slash_pos = filename.find_last_of('/');
   size_t dot_pos   = filename.find_last_of('.');
   std::string basename = filename.substr(slash_pos + 1, dot_pos - slash_pos - 1);
-
+#if JSON == 1
   out.open((basename + ".json").c_str());
   assert(out.is_open());
   toJSON(routines, out, indent, true);
   out.close();
-#ifdef VIZ
+#endif
+#if VIZ == 1
   out.open((basename + "-no-block.json").c_str());
   assert(out.is_open());
   toJSON(routines, out, indent, false);
