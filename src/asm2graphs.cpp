@@ -194,7 +194,13 @@ bool ignore(const std::string & str) {
            str.find("assume") == 0 ||
            str.find("include") == 0 ||
            str.find("unk_") == 0 ||
+           str.find("stru_") == 0 ||
            str.find("extrn") == 0 ||
+           str.find("var_") == 0 ||
+           str.find("CreationTime") == 0 ||
+           str.find("ExitTime") == 0 ||
+           str.find("KernelTime") == 0 ||
+           str.find("UserTime") == 0 ||
            str.find("end") == 0 ||
            str.find("ExceptionInfo") == 0 ||
            str.find("unicode") == 0 ||
@@ -204,8 +210,11 @@ bool ignore(const std::string & str) {
            str.find("byte_") == 0 ||
            str.find("word_") == 0 ||
            str.find("public") == 0 ||
-           str.find("= dword ptr") != std::string::npos ||
-           str.find("= byte ptr") != std::string::npos
+           str.find("=") != std::string::npos ||
+           str.find("?") == 0 ||
+           str.find("xmmword_") == 0 ||
+           str.find("arg_") == 0 ||
+           str.find("messageMap_") == 0
          );
 }
 
