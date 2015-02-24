@@ -374,19 +374,19 @@ int main(int argc, char ** argv) {
   out.open((basename + "-inst.hist").c_str());
   assert(out.is_open());
   for (it_hist = inst_hist.begin(); it_hist != inst_hist.end(); it_hist++)
-    out << it_hist->first << " : " << it_hist->second << std::endl;
+    out << it_hist->first << " " << it_hist->second << std::endl;
   out.close();
 
   out.open((basename + "-blk.hist").c_str());
   assert(out.is_open());
   for (it_hist_ = blk_hist.begin(); it_hist_ != blk_hist.end(); it_hist_++)
-    out << it_hist_->first << " : " << it_hist_->second << std::endl;
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
   out.close();
 
   out.open((basename + "-rtn.hist").c_str());
   assert(out.is_open());
   for (it_hist_ = rtn_hist.begin(); it_hist_ != rtn_hist.end(); it_hist_++)
-    out << it_hist_->first << " : " << it_hist_->second << std::endl;
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
   out.close();
 #endif
   return 0;

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 scriptdir=$(dirname $(readlink -f $0))
 
 original=$(readlink -f $1)
@@ -16,12 +18,11 @@ rm -rf $filename
 mkdir $filename
 cd $filename
 
-expand $original | grep "^.text:" | sed -r 's/^.{14}//' | sed -r 's/^.{49}//' | sed 's/\r//' | grep -v "^;" > $filename.asm
 if [ -e $scriptdir/../src/asm2graphs-$2 ]
 then
-  $scriptdir/../src/asm2graphs-$2 $filename.asm
+  $scriptdir/../src/asm2graphs-$2 $original
 else
-  $scriptdir/../src/asm2graphs $filename.asm
+  $scriptdir/../src/asm2graphs $original
 fi
 
 cd ..
