@@ -48,7 +48,10 @@ enum inst_e {
   e_jl,
   e_jz,
   e_jnz,
+  e_jle,
+  e_jge,
   e_retn,
+  e_retf,
   e_call,
   e_none
 };
@@ -64,7 +67,10 @@ std::string instToString(inst_e inst) {
     case e_jl:   return "jl";
     case e_jz:   return "jz";
     case e_jnz:  return "jnz";
+    case e_jle:  return "jle";
+    case e_jge:  return "jge";
     case e_retn: return "retn";
+    case e_retf: return "retf";
     case e_call: return "call";
     case e_none: return "";
     default: assert(false);
@@ -85,7 +91,10 @@ inst_e getInstruction(const std::string & str, std::string & target) {
   else if (str.find("jl"  ) == 0) return e_jl;
   else if (str.find("jz"  ) == 0) return e_jz;
   else if (str.find("jnz" ) == 0) return e_jnz;
+  else if (str.find("jle" ) == 0) return e_jle;
+  else if (str.find("jge" ) == 0) return e_jge;
   else if (str.find("retn") == 0) return e_retn;
+  else if (str.find("retf") == 0) return e_retf;
   else if (str.find("call") == 0) return e_call;
   else return e_none;
 }
@@ -336,7 +345,7 @@ int main(int argc, char ** argv) {
           curr_blk->last_inst = e_none;
         }
         else if (curr_blk->last_inst != e_none) {
-          if (curr_blk->last_inst != e_retn) {
+          if (curr_blk->last_inst != e_retn && curr_blk->last_inst != e_retf) {
             curr_blk->out_true = target;
             if (curr_blk->last_inst != e_jmp) // No false edge when non-conditional jump
               prev_blk = curr_blk;
