@@ -190,6 +190,16 @@ bool ignore(const std::string & str) {
   return ( str[0] == '.' ||
            str[0] == '_' ||
            str[0] == '+' ||
+           str[0] == '0' ||
+           str[0] == '1' ||
+           str[0] == '2' ||
+           str[0] == '3' ||
+           str[0] == '4' ||
+           str[0] == '5' ||
+           str[0] == '6' ||
+           str[0] == '7' ||
+           str[0] == '8' ||
+           str[0] == '9' ||
            str.find("db") == 0 ||
            str.find(" db ") != std::string::npos ||
            str.find("dd") == 0 ||
@@ -223,7 +233,33 @@ bool ignore(const std::string & str) {
            str.find("?") == 0 ||
            str.find("xmmword_") == 0 ||
            str.find("arg_") == 0 ||
-           str.find("messageMap_") == 0
+           str.find("messageMap_") == 0 ||
+           str.find("qword_") == 0 ||
+           str.find("pStubDescriptor") != std::string::npos ||
+           str.find("pows_") == 0 ||
+           str.find("ObjectAttributes") == 0 ||
+           str.find("messageMap") == 0 ||
+           str.find("GS_") == 0 ||
+           str.find("EventAttributes") == 0 ||
+           str.find("CODE") == 0 ||
+           str.find("AppName") == 0 ||
+           str.find("AFX_MSGMAP_ENTRY") == 0 ||
+           str.find("afxDoublePseudoNull") == 0 ||
+           str.find("phkResult") == 0 ||
+           str.find("rgFuncEntry") == 0 ||
+           str.find("rgStdEntries") == 0 ||
+           str.find("rgStdEntriesDLL") == 0 ||
+           str.find("SecurityAttributes") == 0 ||
+           str.find("seg00") == 0 ||
+           str.find("STANDARD_ENTRY") == 0 ||
+           str.find("String1") == 0 ||
+           str.find("ud2") == 0 ||
+           str.find("UPX") == 0 ||
+           str.find("VxDCall") == 0 ||
+           str.find("VxDJmp") == 0 ||
+           str.find("hModule") == 0 ||
+           str.find("ValueName") == 0 ||
+           str.find("FontDesc") == 0
          );
 }
 
@@ -237,7 +273,10 @@ bool isLabel(const std::string & str, std::string & label) {
 }
 
 bool isProcStart(const std::string & str, std::string & label) {
-  if (str.find("proc near") != std::string::npos) {
+  if (
+    str.find("proc near") != std::string::npos ||
+    str.find("proc far") != std::string::npos
+  ) {
     size_t first_space = str.find_first_of(' ');
     assert(first_space != std::string::npos);
     label = str.substr(0, first_space);
