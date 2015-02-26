@@ -254,8 +254,6 @@ void nextBlock(
   std::vector<routine_t *> & routines
 ) {
   if (!lbl_rtn.empty()) {
-    if (curr_rtn != NULL)
-      curr_rtn->collectHistogram();
     curr_rtn = new routine_t(lbl_rtn);
     routines.push_back(curr_rtn);
   }
@@ -373,6 +371,7 @@ int main(int argc, char ** argv) {
   std::vector<block_t *>::const_iterator it_blk;
 
   for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++) {
+    (*it_rtn)->collectHistogram();
     for (it_hist = (*it_rtn)->inst_hist.begin(); it_hist != (*it_rtn)->inst_hist.end(); it_hist++)
       inst_hist[it_hist->first] += it_hist->second;
 
