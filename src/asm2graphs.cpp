@@ -401,6 +401,7 @@ int main(int argc, char ** argv) {
 
 #if HIST == 1
   std::map<std::string, size_t> inst_hist;
+  std::map<std::string, size_t> inst_hist_rtn;
   std::map<size_t, size_t> blk_hist;
   std::map<size_t, size_t> rtn_hist;
 
@@ -411,8 +412,12 @@ int main(int argc, char ** argv) {
 
   for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++) {
     (*it_rtn)->collectHistogram();
-    for (it_hist = (*it_rtn)->inst_hist.begin(); it_hist != (*it_rtn)->inst_hist.end(); it_hist++)
+
+    for (it_hist = (*it_rtn)->inst_hist.begin(); it_hist != (*it_rtn)->inst_hist.end(); it_hist++) {
       inst_hist[it_hist->first] += it_hist->second;
+      if ((*it_rtn)->label.find("rtn_") == 0)
+        inst_hist_rtn[it_hist->first] += it_hist->second;
+    }
 
     size_t size = 0;
     for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++) {
@@ -431,6 +436,12 @@ int main(int argc, char ** argv) {
   assert(out.is_open());
   for (it_hist = inst_hist.begin(); it_hist != inst_hist.end(); it_hist++)
     out << it_hist->first << " " << it_hist->second << std::endl;
+  out.close();
+
+  out.open((basename + "-inst-rtn.hist").c_str());
+  assert(out.is_open());
+  for (it_hist = inst_hist_rtn.begin(); it_hist != inst_hist_rtn.end(); it_hist++)
+    out << it_hist->first << " : " << it_hist->second << std::endl;
   out.close();
 
   out.open((basename + "-blk.hist").c_str());
