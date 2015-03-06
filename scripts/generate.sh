@@ -8,9 +8,7 @@ format=$1
 dir=$(readlink -f $2)
 name=$3
 
-if [ -z "$format" ]; then generator=$scriptdir/../src/asm2graphs;
-                     else generator=$scriptdir/../src/asm2graphs-$format;
-fi
+generator=$scriptdir/../src/asm2graphs-$format
 
 original=$dir/$name.asm
 
@@ -18,6 +16,7 @@ rm -rf $name
 mkdir $name
 cd $name
 
+echo "$generator $original"
 $generator $original
 
 cd ..

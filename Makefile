@@ -1,7 +1,9 @@
 
 all:
 	make -C src
-	make -C tests
+
+check:
+	make -C tests check
 
 clean:
 	make -C src clean

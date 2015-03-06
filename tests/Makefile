@@ -1,14 +1,22 @@
 
 TARGET=test 0A32eTdBKayjCWhZqDOQ 0ACDbR5M3ZhBJajygTuf
 
-all: $(TARGET)
+check: $(TARGET)
 
 clean:
 	rm -rf $(TARGET)
 
-test: %: %.asm
-	mkdir test ; cd test ; ../../src/asm2graphs ../test.asm ; cd ..
+current_dir=$(shell pwd)
 
-0A32eTdBKayjCWhZqDOQ 0ACDbR5M3ZhBJajygTuf: %: %.asm
-	../scripts/generate.sh $<
+test: %: %.asm ../src/asm2graphs-all
+	mkdir test ; cd test ; ../../src/asm2graphs-all ../test.asm ; cd ..
+
+0ACDbR5M3ZhBJajygTuf: 0ACDbR5M3ZhBJajygTuf.asm ../src/asm2graphs-all
+	../scripts/generate.sh all $(current_dir) 0ACDbR5M3ZhBJajygTuf
+
+0A32eTdBKayjCWhZqDOQ: 0A32eTdBKayjCWhZqDOQ.asm ../src/asm2graphs-all
+	../scripts/generate.sh all $(current_dir) 0A32eTdBKayjCWhZqDOQ
+
+../src/asm2graphs-all:
+	make -C ../src asm2graphs-all
 
