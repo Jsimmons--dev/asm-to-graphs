@@ -40,6 +40,7 @@ void trim(std::string & s, char c) {
 
 enum inst_e {
   e_jmp,
+
   e_ja,
   e_jb,
   e_jbe,
@@ -50,15 +51,33 @@ enum inst_e {
   e_jnz,
   e_jle,
   e_jge,
+  e_jo,
+  e_jno,
+  e_jp,
+  e_jnp,
+  e_js,
+  e_jns,
+  e_jcxz,
+  e_jecxz,
+
+  e_iret,
+  e_iretw,
+  e_retfw,
+  e_retnw,
+  e_sysret,
   e_retn,
   e_retf,
+
   e_call,
+
   e_none
+
 };
 
 std::string instToString(inst_e inst) {
   switch (inst) {
     case e_jmp:  return "jmp";
+
     case e_ja:   return "ja";
     case e_jb:   return "jb";
     case e_jbe:  return "jbe";
@@ -67,11 +86,27 @@ std::string instToString(inst_e inst) {
     case e_jl:   return "jl";
     case e_jz:   return "jz";
     case e_jnz:  return "jnz";
-    case e_jle:  return "jle";
     case e_jge:  return "jge";
+    case e_jle:  return "jle";
+    case e_jo:   return "jo";
+    case e_jno:  return "jno";
+    case e_jp:   return "jp";
+    case e_jnp:  return "jnp";
+    case e_js:   return "js";
+    case e_jns:  return "jns";
+    case e_jcxz:   return "jcxz";
+    case e_jecxz:  return "jecxz";
+
     case e_retn: return "retn";
     case e_retf: return "retf";
+    case e_iret: return "iret";
+    case e_iretw: return "iretw";
+    case e_retfw: return "retfw";
+    case e_retnw: return "retnw";
+    case e_sysret: return "sysret";
+
     case e_call: return "call";
+
     case e_none: return "";
     default: assert(false);
   }
@@ -83,19 +118,38 @@ inst_e getInstruction(const std::string & str, std::string & target) {
     target = str.substr(pos+1);
 
   if      (str.find("jmp" ) == 0) return e_jmp;
+
   else if (str.find("ja"  ) == 0) return e_ja;
+  else if (str.find("jg"  ) == 0) return e_jg;
+  else if (str.find("jge" ) == 0) return e_jge;
+  else if (str.find("jl"  ) == 0) return e_jl;
+  else if (str.find("jle" ) == 0) return e_jle;
   else if (str.find("jb"  ) == 0) return e_jb;
   else if (str.find("jbe" ) == 0) return e_jbe;
   else if (str.find("jnb" ) == 0) return e_jnb;
-  else if (str.find("jg"  ) == 0) return e_jg;
-  else if (str.find("jl"  ) == 0) return e_jl;
+  else if (str.find("jo"  ) == 0) return e_jo;
+  else if (str.find("jno" ) == 0) return e_jno;
+  else if (str.find("jp"  ) == 0) return e_jp;
+  else if (str.find("jnp" ) == 0) return e_jnp;
+  else if (str.find("js"  ) == 0) return e_js;
+  else if (str.find("jns" ) == 0) return e_jns;
   else if (str.find("jz"  ) == 0) return e_jz;
   else if (str.find("jnz" ) == 0) return e_jnz;
-  else if (str.find("jle" ) == 0) return e_jle;
-  else if (str.find("jge" ) == 0) return e_jge;
-  else if (str.find("retn") == 0) return e_retn;
-  else if (str.find("retf") == 0) return e_retf;
+  else if (str.find("jcxz"  ) == 0) return e_jcxz;
+  else if (str.find("jecxz" ) == 0) return e_jecxz;
+
+  else if (str.find("iret"  ) == 0) return e_iret;
+  else if (str.find("iretw" ) == 0) return e_iretw;
+  else if (str.find("retf"  ) == 0) return e_retf;
+  else if (str.find("retfw" ) == 0) return e_retfw;
+  else if (str.find("retn"  ) == 0) return e_retn;
+  else if (str.find("retnw" ) == 0) return e_retnw;
+  else if (str.find("sysret") == 0) return e_sysret;
+
   else if (str.find("call") == 0) return e_call;
+//else if (str.find("syscall") == 0) return e_syscall;
+//else if (str.find("vmmcall") == 0) return e_vmmcall;
+
   else return e_none;
 }
 
@@ -187,7 +241,8 @@ void routine_t::collectHistogram() {
 }
 
 bool ignore(const std::string & str) {
-  return ( str[0] == '.' ||
+  return ( str.length() == 1 ||
+           str[0] == '.' ||
            str[0] == '_' ||
            str[0] == '+' ||
            str[0] == '0' ||
@@ -200,6 +255,31 @@ bool ignore(const std::string & str) {
            str[0] == '7' ||
            str[0] == '8' ||
            str[0] == '9' ||
+           str[0] == 'A' ||
+           str[0] == 'B' ||
+           str[0] == 'C' ||
+           str[0] == 'D' ||
+           str[0] == 'E' ||
+           str[0] == 'F' ||
+           str.find("t.text:0041DF14") == 0 ||
+           str.find("e.text:00422CE2") == 0 ||
+           str.find("sect_1") == 0   ||
+           str.find("qmoyiu") == 0   ||
+           str.find("ptest") == 0    ||
+           str.find("psignw") == 0   ||
+           str.find("pi2fw") == 0    ||
+           str.find("oukci") == 0    ||
+           str.find("meikik") == 0   ||
+           str.find("kwyekk") == 0   ||
+           str.find("iuagwws") == 0  ||
+           str.find("eqooku") == 0   ||
+           str.find("ecasws") == 0   ||
+           str.find("acggagg") == 0  ||
+           str.find("hResInfo") == 0 ||
+           str.find("CriticalSection") == 0 ||
+           str.find("Translated") == 0 ||
+           str.find("String") == 0 ||
+           str.find("Point") == 0 ||
            str.find("db") == 0 ||
            str.find(" db ") != std::string::npos ||
            str.find("dd") == 0 ||
@@ -259,6 +339,8 @@ bool ignore(const std::string & str) {
            str.find("VxDJmp") == 0 ||
            str.find("hModule") == 0 ||
            str.find("ValueName") == 0 ||
+           str.find("_____u1") == 0 ||
+           str.find("dfd") == 0 ||
            str.find("FontDesc") == 0
          );
 }
@@ -382,7 +464,15 @@ int main(int argc, char ** argv) {
           curr_blk->last_inst = e_none;
         }
         else if (curr_blk->last_inst != e_none) {
-          if (curr_blk->last_inst != e_retn && curr_blk->last_inst != e_retf) {
+          if (
+               curr_blk->last_inst != e_sysret &&
+               curr_blk->last_inst != e_retn  &&
+               curr_blk->last_inst != e_iret  &&
+               curr_blk->last_inst != e_iretw &&
+               curr_blk->last_inst != e_retfw &&
+               curr_blk->last_inst != e_retnw &&
+               curr_blk->last_inst != e_retf
+          ) {
             curr_blk->out_true = target;
             if (curr_blk->last_inst != e_jmp) // No false edge when non-conditional jump
               prev_blk = curr_blk;
@@ -402,30 +492,100 @@ int main(int argc, char ** argv) {
 #if HIST == 1
   std::map<std::string, size_t> inst_hist;
   std::map<std::string, size_t> inst_hist_rtn;
-  std::map<size_t, size_t> blk_hist;
-  std::map<size_t, size_t> rtn_hist;
+
+  std::map<std::string, size_t> blk_last_inst_hist;
+
+  std::map<size_t, size_t> inst_per_blk_hist;
+  std::map<size_t, size_t> inst_per_rtn_hist;
+  std::map<size_t, size_t> blk_per_rtn_hist;
+
+  std::map<size_t, size_t> dir_call_per_rtn_hist;
+  std::map<size_t, size_t> ind_call_per_rtn_hist;
+  std::map<size_t, size_t> lib_call_per_rtn_hist;
+
+  std::map<size_t, size_t> dir_call_per_blk_hist;
+  std::map<size_t, size_t> ind_call_per_blk_hist;
+  std::map<size_t, size_t> lib_call_per_blk_hist;
 
   std::map<std::string, size_t>::const_iterator it_hist;
   std::map<size_t, size_t>::const_iterator it_hist_;
   std::vector<routine_t *>::const_iterator it_rtn;
   std::vector<block_t *>::const_iterator it_blk;
+  std::set<std::string>::const_iterator it_callee;
+
+  size_t rtn_cnt = 0;
+  size_t blk_cnt = 0;
+  size_t inst_cnt = 0;
+
+  std::map<std::string, routine_t *> lbl_rtn_map;
+  for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++)
+    lbl_rtn_map[(*it_rtn)->label] = *it_rtn;
 
   for (it_rtn = routines.begin(); it_rtn != routines.end(); it_rtn++) {
+    rtn_cnt++;
+
     (*it_rtn)->collectHistogram();
 
-    for (it_hist = (*it_rtn)->inst_hist.begin(); it_hist != (*it_rtn)->inst_hist.end(); it_hist++) {
+    // Instructions histogran: collect histogram from prodecures and routines
+    for (it_hist = (*it_rtn)->inst_hist.begin(); it_hist != (*it_rtn)->inst_hist.end(); it_hist++)
       inst_hist[it_hist->first] += it_hist->second;
-      if ((*it_rtn)->label.find("rtn_") == 0)
-        inst_hist_rtn[it_hist->first] += it_hist->second;
-    }
 
-    size_t size = 0;
+    // "Deadcode" instructions histogran: collect histogram from routines
+    if ((*it_rtn)->label.find("rtn_") == 0)
+      for (it_hist = (*it_rtn)->inst_hist.begin(); it_hist != (*it_rtn)->inst_hist.end(); it_hist++)
+        inst_hist_rtn[it_hist->first] += it_hist->second;
+
+    // Instructions per Block
+    for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++)
+      inst_per_blk_hist[(*it_blk)->instructions.size()]++;
+
+    // Block's last instructions histogram
+    for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++)
+      if ((*it_blk)->last_inst != e_none)
+        blk_last_inst_hist[instToString((*it_blk)->last_inst)]++;
+      else
+        blk_last_inst_hist["label"]++;
+
+    // Instructions per Routine
+    size_t rtn_inst_cnt = 0;
+    for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++)
+      rtn_inst_cnt += (*it_blk)->instructions.size();
+    inst_per_rtn_hist[rtn_inst_cnt]++;
+
+    // Global instruction count
+    inst_cnt += rtn_inst_cnt;
+
+    // Blocks per Routine
+    blk_per_rtn_hist[(*it_rtn)->blocks.size()]++;
+    blk_cnt += (*it_rtn)->blocks.size();
+
+    size_t cnt_dir_call_rtn = 0;
+    size_t cnt_ind_call_rtn = 0;
+    size_t cnt_lib_call_rtn = 0;
     for (it_blk = (*it_rtn)->blocks.begin(); it_blk != (*it_rtn)->blocks.end(); it_blk++) {
-      blk_hist[(*it_blk)->instructions.size()]++;
-      size+=(*it_blk)->instructions.size();
+      size_t cnt_dir_call_blk = 0;
+      size_t cnt_ind_call_blk = 0;
+      size_t cnt_lib_call_blk = 0;
+      for (it_callee = (*it_blk)->callees.begin(); it_callee != (*it_blk)->callees.end(); it_callee++) {
+        if (it_callee->find("[") == 0)
+          cnt_ind_call_blk++;
+        else if (it_callee->find("sub_") == 0 || it_callee->find("loc_") == 0)
+          cnt_dir_call_blk++;
+        else
+          cnt_lib_call_blk++;
+      }
+      cnt_dir_call_rtn += cnt_dir_call_blk;
+      dir_call_per_blk_hist[cnt_dir_call_blk]++;
+      cnt_ind_call_rtn += cnt_ind_call_blk;
+      ind_call_per_blk_hist[cnt_ind_call_blk]++;
+      cnt_lib_call_rtn += cnt_lib_call_blk;
+      lib_call_per_blk_hist[cnt_lib_call_blk]++;
     }
-    rtn_hist[size]++;
+    dir_call_per_rtn_hist[cnt_dir_call_rtn]++;
+    ind_call_per_rtn_hist[cnt_ind_call_rtn]++;
+    lib_call_per_rtn_hist[cnt_lib_call_rtn]++;
   }
+  rtn_cnt = routines.size();
 
   std::ofstream out;
   size_t slash_pos = filename.find_last_of('/');
@@ -441,19 +601,74 @@ int main(int argc, char ** argv) {
   out.open((basename + "-inst-rtn.hist").c_str());
   assert(out.is_open());
   for (it_hist = inst_hist_rtn.begin(); it_hist != inst_hist_rtn.end(); it_hist++)
-    out << it_hist->first << " : " << it_hist->second << std::endl;
+    out << it_hist->first << " " << it_hist->second << std::endl;
   out.close();
 
-  out.open((basename + "-blk.hist").c_str());
+  out.open((basename + "-blk-last-inst.hist").c_str());
   assert(out.is_open());
-  for (it_hist_ = blk_hist.begin(); it_hist_ != blk_hist.end(); it_hist_++)
+  for (it_hist = blk_last_inst_hist.begin(); it_hist != blk_last_inst_hist.end(); it_hist++)
+    out << it_hist->first << " " << it_hist->second << std::endl;
+  out.close();
+
+  out.open((basename + "-inst-per-blk.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = inst_per_blk_hist.begin(); it_hist_ != inst_per_blk_hist.end(); it_hist_++)
     out << it_hist_->first << " " << it_hist_->second << std::endl;
   out.close();
 
-  out.open((basename + "-rtn.hist").c_str());
+  out.open((basename + "-inst-per-rtn.hist").c_str());
   assert(out.is_open());
-  for (it_hist_ = rtn_hist.begin(); it_hist_ != rtn_hist.end(); it_hist_++)
+  for (it_hist_ = inst_per_rtn_hist.begin(); it_hist_ != inst_per_rtn_hist.end(); it_hist_++)
     out << it_hist_->first << " " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-blk-per-rtn.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = blk_per_rtn_hist.begin(); it_hist_ != blk_per_rtn_hist.end(); it_hist_++)
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-dir-call-per-rtn.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = dir_call_per_rtn_hist.begin(); it_hist_ != dir_call_per_rtn_hist.end(); it_hist_++)
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-ind-call-per-rtn.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = ind_call_per_rtn_hist.begin(); it_hist_ != ind_call_per_rtn_hist.end(); it_hist_++)
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-lib-call-per-rtn.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = lib_call_per_rtn_hist.begin(); it_hist_ != lib_call_per_rtn_hist.end(); it_hist_++)
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-dir-call-per-blk.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = dir_call_per_blk_hist.begin(); it_hist_ != dir_call_per_blk_hist.end(); it_hist_++)
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-ind-call-per-blk.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = ind_call_per_blk_hist.begin(); it_hist_ != ind_call_per_blk_hist.end(); it_hist_++)
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-lib-call-per-blk.hist").c_str());
+  assert(out.is_open());
+  for (it_hist_ = lib_call_per_blk_hist.begin(); it_hist_ != lib_call_per_blk_hist.end(); it_hist_++)
+    out << it_hist_->first << " " << it_hist_->second << std::endl;
+  out.close();
+
+  out.open((basename + "-stat.hist").c_str());
+  assert(out.is_open());
+  out << "rtn_cnt "  << rtn_cnt  << std::endl;
+  out << "blk_cnt "  << blk_cnt  << std::endl;
+  out << "inst_cnt " << inst_cnt << std::endl;
   out.close();
 #endif
   return 0;

@@ -4,26 +4,21 @@ set -e
 
 scriptdir=$(dirname $(readlink -f $0))
 
-original=$(readlink -f $1)
+format=$1
+dir=$(readlink -f $2)
+name=$3
 
-filename=$(basename $1)
-filename=${filename%.*}
-
-if [ ! -e $scriptdir/../src/asm2graphs ]
-then
-  make -C $scriptdir/../src asm2graphs
+if [ -z "$format" ]; then generator=$scriptdir/../src/asm2graphs;
+                     else generator=$scriptdir/../src/asm2graphs-$format;
 fi
 
-rm -rf $filename
-mkdir $filename
-cd $filename
+original=$dir/$name.asm
 
-if [ -e $scriptdir/../src/asm2graphs-$2 ]
-then
-  $scriptdir/../src/asm2graphs-$2 $original
-else
-  $scriptdir/../src/asm2graphs $original
-fi
+rm -rf $name
+mkdir $name
+cd $name
+
+$generator $original
 
 cd ..
 
