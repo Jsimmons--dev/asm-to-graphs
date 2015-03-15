@@ -22,17 +22,22 @@
 # define HIST 0
 #endif
 
+//trim from first non char c to end
+//used to trim white space off the left of a string
 void ltrim(std::string & s, char c) {
   size_t first = s.find_first_not_of(c);
   if (first != std::string::npos)
     s =  s.substr(first);
 }
 
+//find last occurance of non char c and return beginning to there
+//used to trim whitespace off of right side of string
 void rtrim(std::string & s, char c) {
   size_t last = s.find_last_not_of(c);
   s =  s.substr(0, last+1);
 }
 
+//used to trim white space off of both sides of string
 void trim(std::string & s, char c) {
   ltrim(s, c);
   rtrim(s, c);
@@ -153,10 +158,13 @@ inst_e getInstruction(const std::string & str, std::string & target) {
   else return e_none;
 }
 
+//returns whether the char c is in the printable ascii range
 bool isPrintable(char c) {
   return (c >= 32) && (c <= 126);
 }
 
+//returns a 'sanitized' string
+//strips out unprintable characters
 std::string sanitize(const std::string & label) {
   std::string res;
   for (int i = 0; i < label.size(); i++)
@@ -396,13 +404,18 @@ void nextBlock(
   }
 }
 
+//main
 int main(int argc, char ** argv) {
 //std::cerr << argv[1] << std::endl;
 
+  //file stream for input
   std::ifstream input;
+  //open file passed as input for reading
   input.open(argv[1]);
+  //really check if it's open
   assert(input.is_open());
 
+  //dynamic array of the routine_t type defined above
   std::vector<routine_t *> routines;
 
   routine_t * curr_rtn = NULL;
@@ -411,29 +424,41 @@ int main(int argc, char ** argv) {
   block_t   * prev_blk = NULL;
   block_t   * curr_blk = NULL;
   size_t cnt_blk = 0;
-
+  
+  //string to read the current line into
   std::string line;
 
+  //while there are still lines to read
   while (std::getline(input, line)) {
 //  std::cerr << std::endl;
 //  std::cerr << "Read: \"" << line << "\"" << std::endl;
-
+   
+    //strip the unprintables
     line = sanitize(line);
-
+   
+    //find where an assembly comment starts
     size_t start_comment = line.find_first_of(';');
+    //if there is a comment
     if (start_comment != std::string::npos)
+      //only keep the instruction part
       line = line.substr(0, start_comment);
-
+    //if line is instruction(?) then trim white space off either side
     if (line.length() > 1) trim(line, ' ');
-
+    //if is instruction(?) and its not a string we should ignore
     if ((line.length() > 1) && !ignore(line)) {
 
 //    std::cerr << "Use : \"" << line << "\"" << std::endl;
 
+      //string for the label
       std::string label;
+      //if it is a label
       if (isLabel(line, label)) {
+        //string stream to operate on
         std::ostringstream oss_rtn;
+        //if the current routine is empty then send "rtn_" + the number of routines
+        //into the stream
         if (curr_rtn == NULL) oss_rtn << "rtn_" << cnt_rtn++;
+        //
         nextBlock(prev_blk, curr_blk, curr_rtn, label, oss_rtn.str(), routines);
       }
       else if (isProcStart(line, label)) {
